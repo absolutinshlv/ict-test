@@ -34,7 +34,7 @@ class BlogController extends Controller
         return view('blog.create', ['categories' => Category::all()]);
     }
 
-    private static function validateData(Request $request): array
+    private function validateData(Request $request): array
     {
         return $request->validate([
             'title' => 'required|max:255',
@@ -42,7 +42,7 @@ class BlogController extends Controller
         ]);
     }
 
-    private static function syncCategories(array|null $categories, Blog $blog): void
+    private function syncCategories(array|null $categories, Blog $blog): void
     {
         if ($categories) {
             $blog->categories()->sync($categories);
