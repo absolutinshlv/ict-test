@@ -12,16 +12,18 @@ class BlogController extends Controller
 {
     public function index(Request $request)
     {
-        if ($search = $request->input('search')) {
+        $search = $request->input('search');
+
+        if ($search) {
             $request->validate([
                 'search' => 'required|min:3',
             ]);
         }
-        $blogs = Blog::where('title', 'like', "%$search%")
-            ->orWhere('body', 'like', "%$search%")
+
+        $blogs = Blog::search($search)
             ->orderByDesc('id')
-            ->paginate(3);
-        $blogs->appends(['search' => $search]);
+            ->paginate(3)
+            ->appends(['search' => $search]);
 
         return view('blog.index', ['blogs' => $blogs]);
     }
@@ -33,19 +35,15 @@ class BlogController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validatedData = $request->validate([
             'title' => 'required|max:255',
             'body' => 'required|min:25',
         ]);
+        $validatedData['user_id'] = auth()->id();
+
+        $blog = Blog::create($validatedData);
 
         $categories = $request->category;
-
-        $blog = new Blog();
-        $blog->title = $request->title;
-        $blog->body = $request->body;
-        $blog->user_id = auth()->id();
-        $blog->save();
-
         if ($categories) {
             $blog->categories()->attach($categories);
         }
@@ -53,9 +51,8 @@ class BlogController extends Controller
         return redirect()->route('blog.index');
     }
 
-    public function show(string $id)
+    public function show(Blog $blog)
     {
-        $blog = Blog::find($id);
         return view('blog.show', ['blog' => $blog]);
     }
 
@@ -69,12 +66,12 @@ class BlogController extends Controller
 
     public function update(Request $request, Blog $blog)
     {
-        $validated = $request->validate([
+        $validatedData = $request->validate([
             'title' => 'required|max:255',
             'body' => 'required|min:25',
         ]);
 
-        $blog->update($request->only('title', 'body'));
+        $blog->update($validatedData);
 
         $categories = $request->category;
         if ($categories) {
@@ -93,14 +90,13 @@ class BlogController extends Controller
 
     public function addComment(Request $request)
     {
-        $request->validate([
+        $validatedData = $request->validate([
             'body' => 'required|min:10',
+            'blog_id' => 'required',
         ]);
-        $data = new BlogComment();
-        $data->body = $request->body;
-        $data->user_id = auth()->id();
-        $data->blog_id = $request->blog_id;
-        $data->save();
+        $validatedData['user_id'] = auth()->id();
+
+        BlogComment::create($validatedData);
 
         return redirect()->route('blog.show', $request->blog_id);
     }

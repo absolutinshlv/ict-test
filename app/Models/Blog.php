@@ -17,6 +17,22 @@ class Blog extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'created_at' => 'datetime',
+    ];
+
+    public function scopeSearch($query, $search)
+    {
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%$search%")
+                    ->orWhere('body', 'like', "%$search%");
+            });
+        }
+
+        return $query;
+    }
+
     public function categories()
     {
         return $this->belongsToMany(Category::class);
