@@ -7,10 +7,11 @@ use App\Models\Blog;
 use App\Models\BlogComment;
 use App\Models\Category;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class BlogController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $search = $request->input('search');
 
@@ -33,30 +34,41 @@ class BlogController extends Controller
         return view('blog.create', ['categories' => Category::all()]);
     }
 
-    public function store(Request $request)
+    private static function validateData(Request $request): array
     {
-        $validatedData = $request->validate([
+        return $request->validate([
             'title' => 'required|max:255',
             'body' => 'required|min:25',
         ]);
+    }
+
+    private static function syncCategories(array|null $categories, Blog $blog): void
+    {
+        if ($categories) {
+            $blog->categories()->sync($categories);
+        } else {
+            $blog->categories()->detach($categories);
+        }
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validatedData = $this->validateData($request);
         $validatedData['user_id'] = auth()->id();
 
         $blog = Blog::create($validatedData);
 
-        $categories = $request->category;
-        if ($categories) {
-            $blog->categories()->attach($categories);
-        }
+        $this->syncCategories($request->category, $blog);
 
         return redirect()->route('blog.index');
     }
 
-    public function show(Blog $blog)
+    public function show(Blog $blog): View
     {
         return view('blog.show', ['blog' => $blog]);
     }
 
-    public function edit(Blog $blog)
+    public function edit(Blog $blog): View
     {
         return view('blog.edit', [
             'blog' => $blog,
@@ -64,31 +76,24 @@ class BlogController extends Controller
         ]);
     }
 
-    public function update(Request $request, Blog $blog)
+    public function update(Request $request, Blog $blog): RedirectResponse
     {
-        $validatedData = $request->validate([
-            'title' => 'required|max:255',
-            'body' => 'required|min:25',
-        ]);
+        $validatedData = $this->validateData($request);
 
         $blog->update($validatedData);
 
-        $categories = $request->category;
-        if ($categories) {
-            $blog->categories()->sync($categories);
-        } else {
-            $blog->categories()->detach($categories);
-        }
+        $this->syncCategories($request->category, $blog);
+
         return redirect()->back();
     }
 
-    public function destroy(Blog $blog)
+    public function destroy(Blog $blog): RedirectResponse
     {
         $blog->delete();
-        return redirect()->back();
+        return redirect()->route('blog.index');
     }
 
-    public function addComment(Request $request)
+    public function addComment(Request $request): RedirectResponse
     {
         $validatedData = $request->validate([
             'body' => 'required|min:10',
@@ -101,7 +106,7 @@ class BlogController extends Controller
         return redirect()->route('blog.show', $request->blog_id);
     }
 
-    public function deleteComment(BlogComment $comment)
+    public function deleteComment(BlogComment $comment): RedirectResponse
     {
         $comment->delete();
         return redirect()->back();

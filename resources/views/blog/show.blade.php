@@ -12,6 +12,22 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-5">
+                <div class="container w-[100px] float-right">
+                    @can('own-blog', $blog)
+                    <a href="{{ route('blog.edit', $blog->id) }}">
+                        <span
+                            class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Edit</span>
+                    </a>
+                    @endcan
+                    @can('own-blog', $blog)
+                    <form method="POST" action="{{ route('blog.destroy', $blog->id) }}" class="float-right ml-2">
+                        @csrf
+                        @method("DELETE")
+                        <button type="submit"
+                            class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Delete</button>
+                    </form>
+                    @endcan
+                </div>
                 <h1 class="text-xl font-bold">{{ $blog->title }}</h1>
                 <div>
                     <p class="text-sm">Added by {{ $blog->author_name }}, {{ $blog->created_at }}</p>
